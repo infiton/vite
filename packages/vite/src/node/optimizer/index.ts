@@ -1228,11 +1228,11 @@ function getDepHash(
   }
 }
 
-function getOptimizedBrowserHash(
+export function getOptimizedBrowserHash(
   hash: string,
   deps: Record<string, string>,
   timestamp = '',
-) {
+): string {
   return getHash(hash + JSON.stringify(deps) + timestamp)
 }
 

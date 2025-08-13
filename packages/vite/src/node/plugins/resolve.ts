@@ -238,7 +238,7 @@ export function resolvePlugin(resolveOptions: InternalResolveOptions): Plugin {
         // always return here even if res doesn't exist since /@fs/ is explicit
         // if the file doesn't exist it should be a 404.
         debug?.(`[@fs] ${colors.cyan(id)} -> ${colors.dim(res)}`)
-        return ensureVersionQuery(res, id, options, depsOptimizer)
+        return await ensureVersionQuery(res, id, options, depsOptimizer)
       }
 
       // URL
@@ -251,7 +251,7 @@ export function resolvePlugin(resolveOptions: InternalResolveOptions): Plugin {
         const fsPath = path.resolve(root, id.slice(1))
         if ((res = tryFsResolve(fsPath, options))) {
           debug?.(`[url] ${colors.cyan(id)} -> ${colors.dim(res)}`)
-          return ensureVersionQuery(res, id, options, depsOptimizer)
+          return await ensureVersionQuery(res, id, options, depsOptimizer)
         }
       }
 
@@ -274,6 +274,7 @@ export function resolvePlugin(resolveOptions: InternalResolveOptions): Plugin {
             !resolveOptions.isBuild &&
             !DEP_VERSION_RE.test(normalizedFsPath)
           ) {
+            await depsOptimizer.scanProcessing
             const browserHash = optimizedDepInfoFromFile(
               depsOptimizer.metadata,
               normalizedFsPath,
@@ -294,7 +295,7 @@ export function resolvePlugin(resolveOptions: InternalResolveOptions): Plugin {
         }
 
         if ((res = tryFsResolve(fsPath, options))) {
-          res = ensureVersionQuery(res, id, options, depsOptimizer)
+          res = await ensureVersionQuery(res, id, options, depsOptimizer)
           debug?.(`[relative] ${colors.cyan(id)} -> ${colors.dim(res)}`)
 
           // If this isn't a script imported from a .html file, include side effects
@@ -326,7 +327,7 @@ export function resolvePlugin(resolveOptions: InternalResolveOptions): Plugin {
         const fsPath = path.resolve(basedir, id)
         if ((res = tryFsResolve(fsPath, options))) {
           debug?.(`[drive-relative] ${colors.cyan(id)} -> ${colors.dim(res)}`)
-          return ensureVersionQuery(res, id, options, depsOptimizer)
+          return await ensureVersionQuery(res, id, options, depsOptimizer)
         }
       }
 
@@ -336,7 +337,7 @@ export function resolvePlugin(resolveOptions: InternalResolveOptions): Plugin {
         (res = tryFsResolve(id, options))
       ) {
         debug?.(`[fs] ${colors.cyan(id)} -> ${colors.dim(res)}`)
-        return ensureVersionQuery(res, id, options, depsOptimizer)
+        return await ensureVersionQuery(res, id, options, depsOptimizer)
       }
 
       // external
@@ -503,18 +504,19 @@ function resolveSubpathImports(
   return importsPath + postfix
 }
 
-function ensureVersionQuery(
+async function ensureVersionQuery(
   resolved: string,
   id: string,
   options: InternalResolveOptions,
   depsOptimizer?: DepsOptimizer,
-): string {
+): Promise<string> {
   if (
     !options.isBuild &&
     !options.scan &&
     depsOptimizer &&
     !(resolved === normalizedClientEntry || resolved === normalizedEnvEntry)
   ) {
+    await depsOptimizer.scanProcessing
     // Ensure that direct imports of node_modules have the same version query
     // as if they would have been imported through a bare import
     // Use the original id to do the check as the resolved id may be the real

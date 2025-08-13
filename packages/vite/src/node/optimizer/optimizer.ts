@@ -12,6 +12,7 @@ import {
   depsLogString,
   discoverProjectDependencies,
   extractExportsData,
+  getOptimizedBrowserHash,
   getOptimizedDepPath,
   initDepsOptimizerMetadata,
   loadCachedDepOptimizationMetadata,
@@ -253,6 +254,17 @@ async function createDepsOptimizer(
 
             const knownDeps = prepareKnownDeps()
             startNextDiscoveredBatch()
+
+            // now that we have known deps, we can eagerly set the browserHash to match
+            // what will eventually be set for the new metadata we are about to
+            metadata.browserHash = getOptimizedBrowserHash(
+              metadata.hash,
+              depsFromOptimizedDepInfo(knownDeps),
+            )
+
+            for (const dep of Object.keys(metadata.discovered)) {
+              metadata.discovered[dep].browserHash = metadata.browserHash
+            }
 
             // For dev, we run the scanner and the first optimization
             // run on the background
